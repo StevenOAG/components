@@ -14,6 +14,8 @@
 
 package org.switchyard.component.bean.internal.context;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Set;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -35,7 +37,14 @@ import org.switchyard.component.bean.BeanMessages;
 @Alternative
 public class ContextProxy implements Context {
 
-    private static final ThreadLocal<Context> CONTEXT = new ThreadLocal<Context>();
+    private static final ThreadLocal<Deque<Context>> CONTEXT = new ThreadLocal<Deque<Context>>() {
+
+        @Override
+        protected Deque<Context> initialValue() {
+            return new ArrayDeque<Context>();
+        }
+        
+    };
 
     /**
      * {@inheritDoc}
@@ -154,7 +163,7 @@ public class ContextProxy implements Context {
      * @return the context
      */
     private static Context getContext() {
-        Context context = CONTEXT.get();
+        Context context = CONTEXT.get().peek();
         if (context == null) {
             throw BeanMessages.MESSAGES.illegalCallToGetTheSwitchYardContextMustBeCalledWithinTheExecutionOfAnExchangeHandlerChain();
         }
@@ -167,9 +176,9 @@ public class ContextProxy implements Context {
      */
     public static void setContext(Context context) {
         if (context != null) {
-            CONTEXT.set(context);
+            CONTEXT.get().push(context);
         } else {
-            CONTEXT.remove();
+            CONTEXT.get().pop();
         }
     }
 

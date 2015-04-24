@@ -13,6 +13,8 @@
  */
 package org.switchyard.component.bean.internal.exchange;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Alternative;
 
@@ -39,14 +41,21 @@ import org.switchyard.metadata.ServiceOperation;
 @Alternative
 public class ExchangeProxy implements Exchange {
 
-    private static final ThreadLocal<Exchange> EXCHANGE = new ThreadLocal<Exchange>();
+    private static final ThreadLocal<Deque<Exchange>> EXCHANGE = new ThreadLocal<Deque<Exchange>>() {
+
+        @Override
+        protected Deque<Exchange> initialValue() {
+            return new ArrayDeque<Exchange>();
+        }
+        
+    };
 
     /**
      * Gets the {@link Exchange} for the current thread.
      * @return the message
      */
     private static Exchange getExchange() {
-        Exchange exchange = EXCHANGE.get();
+        Exchange exchange = EXCHANGE.get().peek();
         if (exchange == null) {
             throw BeanMessages.MESSAGES.illegalExchangeAccessOutsideHandlerChain();
         }
@@ -59,9 +68,9 @@ public class ExchangeProxy implements Exchange {
      */
     public static void setExchange(Exchange exchange) {
         if (exchange != null) {
-            EXCHANGE.set(exchange);
+            EXCHANGE.get().push(exchange);
         } else {
-            EXCHANGE.remove();
+            EXCHANGE.get().pop();
         }
     }
 

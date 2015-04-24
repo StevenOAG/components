@@ -13,6 +13,8 @@
  */
 package org.switchyard.component.bean.internal.message;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Map;
 
 import javax.activation.DataSource;
@@ -34,7 +36,14 @@ import org.switchyard.component.bean.BeanMessages;
 @Alternative
 public class MessageProxy implements Message {
 
-    private static final ThreadLocal<Message> MESSAGE = new ThreadLocal<Message>();
+    private static final ThreadLocal<Deque<Message>> MESSAGE = new ThreadLocal<Deque<Message>>() {
+
+        @Override
+        protected Deque<Message> initialValue() {
+            return new ArrayDeque<Message>();
+        }
+        
+    };
 
     /**
      * {@inheritDoc}
@@ -113,7 +122,7 @@ public class MessageProxy implements Message {
      * @return the message
      */
     private static Message getMessage() {
-        Message message = MESSAGE.get();
+        Message message = MESSAGE.get().peek();
         if (message == null) {
             throw BeanMessages.MESSAGES.illegalCallToGetTheSwitchYardContextMustBeCalledWithinTheExecutionOfAnExchangeHandlerChain();
         }
@@ -126,9 +135,9 @@ public class MessageProxy implements Message {
      */
     public static void setMessage(Message message) {
         if (message != null) {
-            MESSAGE.set(message);
+            MESSAGE.get().push(message);
         } else {
-            MESSAGE.remove();
+            MESSAGE.get().pop();
         }
     }
 
